@@ -38,3 +38,9 @@ struct Replacement* createDoubleReplacement(char* path, double value) {
     memcpy(result->value, &value, result->value_len);
     return result;
 }
+
+// Free a replacement instance.
+void replacement_free(struct Replacement* replacement) {
+    free(replacement->value);
+    free(replacement);
+}

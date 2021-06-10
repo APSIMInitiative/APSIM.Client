@@ -10,6 +10,7 @@
 
 #include "replacement.h"
 #include "client.h"
+#include "client-private.h"
 
 const char* ACK = "ACK";
 const char* FIN = "FIN";
@@ -30,6 +31,9 @@ int connectToServer(char* name) {
     strcpy(address.sun_path, pipe);
     int err;
     while ( (err = connect(sock, (struct sockaddr *)&address, sizeof(address)) < 0) || errno == EINTR);
+    if (err < 0 && errno != EINTR) {
+        printf("connect() failure: %s\n", strerror(errno));
+    }
     assert(err >= 0);
     return sock;
 }

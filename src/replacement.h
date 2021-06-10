@@ -9,4 +9,8 @@ struct Replacement
 
 struct Replacement* createIntReplacement(char* path, int32_t value);
 struct Replacement* createDoubleReplacement(char* path, double value);
+
+// Free a replacement instance.
+void replacement_free(struct Replacement* replacement);
+
 // TODO: bool, date, string replacements.

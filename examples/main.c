@@ -32,8 +32,7 @@ int main(int argc, char** argv)
         printf("Running sims with the following changes:\n");
         printf("  %s = %.2f\n", path, value);
         runWithChanges(sock, &change, 1);
-        free(change->value);
-        free(change);
+        replacement_free(change);
 
         // Let's read some outputs.
         char* table = "HarvestReport";
