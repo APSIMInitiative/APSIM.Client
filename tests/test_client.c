@@ -305,6 +305,24 @@ START_TEST(test_connect_to_server) {
 }
 END_TEST
 
+START_TEST(test_disconnect_from_server) {
+    establish_connection();
+    disconnectFromServer(client_socket);
+    int res = write(client_socket, "x", 1);
+    if (res >= 0) {
+        teardown();
+        ck_assert_int_ge(res, 0);
+    }
+    if (errno != EBADF) {
+        teardown();
+        ck_assert_int_eq(EBADF, errno);
+    }
+    // Prevent the teardown function from trying to close the client
+    // socket for a second time.
+    client_socket = -1;
+}
+END_TEST
+
 START_TEST(test_send_to_server) {
     establish_connection();
     int message_length;
@@ -417,6 +435,7 @@ Suite* client_test_suite() {
     test_case = tcase_create("Client Test Case");
 
     tcase_add_test(test_case, test_connect_to_server);
+    tcase_add_test(test_case, test_disconnect_from_server);
     tcase_add_test(test_case, test_send_to_server);
     tcase_add_test(test_case, test_read_from_server);
     tcase_add_test(test_case, test_send_replacement_to_server);
