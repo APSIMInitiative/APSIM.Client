@@ -426,6 +426,7 @@ START_TEST(test_run_with_changes) {
         replacement_free(changes[i]);
     }
 }
+END_TEST
 
 Suite* client_test_suite() {
     Suite* suite;
