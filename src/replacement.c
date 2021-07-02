@@ -1,9 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
-#include "utils.h"
 #include "replacement.h"
 
 const int PROPERTY_TYPE_INT = 0;
