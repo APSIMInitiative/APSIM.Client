@@ -5,6 +5,7 @@ RM= rm -f
 INCLUDES=src/
 HEADERS={client,replacement}.h
 INST=/usr/local
+CHECKFLAGS=`pkg-config --cflags --libs check`
 
 .PHONY: all clean install uninstall
 all: libapsimclient.so example unittests
@@ -22,4 +23,4 @@ libapsimclient.so: src/client.c src/replacement.c
 example: examples/main.c libapsimclient.so
 	$(CC) -L. -I $(INCLUDES) $(CFLAGS) $(LDFLAGS) $^ -o $@
 unittests: tests/tests.c tests/test_replacements.c tests/test_client.c libapsimclient.so
-	$(CC) -L. -I $(INCLUDES) $(CFLAGS) -pthread -lcheck $(LDFLAGS) $^ -o $@
+	$(CC) -L. -I $(INCLUDES) $(CFLAGS) -pthread $(LDFLAGS) $^ $(CHECKFLAGS) -o $@
