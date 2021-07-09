@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -16,6 +18,18 @@ const char* ACK = "ACK";
 const char* FIN = "FIN";
 const char* COMMAND_RUN = "RUN";
 const char* COMMAND_READ = "READ";
+
+// Connect to the given socket address, blocking until a connection
+// is established. Failed assertion will occur if a connection is
+// not established.
+void connectTo(int sock, struct sockaddr* address, socklen_t length) {
+    int err;
+    while ( (err = connect(sock, address, length) < 0) || errno == EINTR);
+    if (err < 0 && errno != EINTR) {
+        printf("connect() failure: %s\n", strerror(errno));
+    }
+    assert(err >= 0);
+}
 
 // Connect to the APSIM Server with the specified name.
 int connectToServer(char* name) {
@@ -29,12 +43,24 @@ int connectToServer(char* name) {
     struct sockaddr_un address;
     address.sun_family = AF_UNIX;
     strcpy(address.sun_path, pipe);
-    int err;
-    while ( (err = connect(sock, (struct sockaddr *)&address, sizeof(address)) < 0) || errno == EINTR);
-    if (err < 0 && errno != EINTR) {
-        printf("connect() failure: %s\n", strerror(errno));
-    }
-    assert(err >= 0);
+
+    connectTo(sock, (struct sockaddr*)&address, sizeof(address));
+    return sock;
+}
+
+// Connect to the APSIM Server running on a remote machine listening on
+// the specified IP Address and port number.
+//
+// @param ip_addr: IPv4 Address of the server in ascii notation (e.g. "127.0.0.1")
+// @param port: Port number on which the server is listening.
+int connectToRemoteServer(char* ip_addr, uint16_t port) {
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in address;
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    address.sin_addr.s_addr = inet_addr(ip_addr);
+
+    connectTo(sock, (struct sockaddr*)&address, sizeof(address));
     return sock;
 }
 

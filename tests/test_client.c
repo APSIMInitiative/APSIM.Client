@@ -1,6 +1,8 @@
 #include <check.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
 
@@ -33,21 +35,71 @@ void teardown() {
         if (err != 0) {
             printf("Error closing connection socket: %s\n", strerror(errno));
         }
+        // connection_socket = -1;
     }
     if (client_socket != -1) {
         int err = close(client_socket);
         if (err != 0) {
             printf("Error closing client socket (%d): %s\n", errno, strerror(errno));
         }
+        // client_socket = -1;
     }
     if (server_socket != -1) {
         int err = close(server_socket);
         if (err != 0) {
             printf("Error closing server socket (%d): %s\n", errno, strerror(errno));
         }
+        // server_socket = -1;
     }
     if (strcmp(pipe_file, "") != 0 && access(pipe_file, F_OK) == 0) {
         remove(pipe_file);
+    }
+}
+
+// Create a server on localhost, listening on the given port,
+// then create a client and connect to the server.
+void establish_remote_connection(uint16_t port) {
+    // Create a server and listen for connections.
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    struct sockaddr_in address;
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    // (0x7f000001 = 127.0.0.1)
+    address.sin_addr.s_addr = inet_addr("127.0.0.1");//htonl(0x7f000001);
+    int addr_len = sizeof(address);
+
+    // After being closed, the AF_INET socket will go into a TIME_WAIT
+    // state for a period of time, during which further calls to bind()
+    // will fail. This will cause the unit tests to fail if run
+    // multiple times in quick succession. To work around this issue,
+    // we enable the SO_REUSEADDR socket option, to allow the address
+    // to be reused even when it's in a TIME_WAIT state.
+    int opt = 1;
+    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(int));
+
+    int err = bind(server_socket, (struct sockaddr*)&address, addr_len);
+    if (err < 0) {
+        printf("bind() failure: %s\n", strerror(errno));
+        teardown();
+        ck_assert_int_eq(0, err);
+    }
+
+    err = listen(server_socket, 10);
+    if (err < 0) {
+        printf("listen() failure: %s\n", strerror(errno));
+        teardown();
+        ck_assert_int_eq(0, err);
+    }
+
+    // Use the apsim client API to connect to the server.
+    client_socket = connectToRemoteServer("127.0.0.1", port);
+
+    // Accept the incoming connection from the client.
+    connection_socket = accept(server_socket, (struct sockaddr*)&address, (socklen_t*)&addr_len);
+    if (connection_socket < 0) {
+        printf("accept() failure: %s\n", strerror(errno));
+        teardown();
+        ck_assert_int_ge(connection_socket, 0);
     }
 }
 
@@ -285,12 +337,11 @@ void run_with_changes(struct Replacement** changes, uint32_t nchanges) {
     }
 }
 
-START_TEST(test_connect_to_server) {
-    establish_connection();
-
+void basic_connection_test() {
     char msg[6] = "hello";
     int err = send(client_socket, msg, 5, 0);
     if (err < 0) {
+        teardown();
         printf("send() error: %s\n", strerror(errno));
     }
     ck_assert_int_eq(err, 5);
@@ -298,10 +349,22 @@ START_TEST(test_connect_to_server) {
     char incoming[6];
     err = read(connection_socket, (void*)incoming, 5);
     if (err < 0) {
+        teardown();
         printf("read() error: %s\n", strerror(errno));
     }
     ck_assert_int_eq(err, 5);
     ck_assert_str_eq(msg, incoming);
+}
+
+START_TEST(test_connect_to_server) {
+    establish_connection();
+    basic_connection_test();
+}
+END_TEST
+
+START_TEST(test_connect_to_remote_server) {
+    establish_remote_connection(55555);
+    basic_connection_test();
 }
 END_TEST
 
@@ -436,6 +499,7 @@ Suite* client_test_suite() {
     test_case = tcase_create("Client Test Case");
 
     tcase_add_test(test_case, test_connect_to_server);
+    tcase_add_test(test_case, test_connect_to_remote_server);
     tcase_add_test(test_case, test_disconnect_from_server);
     tcase_add_test(test_case, test_send_to_server);
     tcase_add_test(test_case, test_read_from_server);

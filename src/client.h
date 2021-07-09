@@ -9,6 +9,13 @@ struct output
 // socket FD which is used by the other functions here.
 int connectToServer(char* name);
 
+// Connect to the APSIM Server running on a remote machine listening on
+// the specified IP Address and port number.
+//
+// @param ip_addr: IPv4 Address of the server in ascii notation (e.g. "127.0.0.1")
+// @param port: Port number on which the server is listening.
+int connectToRemoteServer(char* ip_addr, uint16_t port);
+
 // Tell the server to re-run the file with the specified changes.
 void runWithChanges(int sock, struct Replacement** changes, unsigned int n);
 
