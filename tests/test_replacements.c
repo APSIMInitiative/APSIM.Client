@@ -3,7 +3,7 @@
 
 START_TEST(test_create_int_replacement) {
     char* path = "some path";
-    struct Replacement* repl = createIntReplacement(path, 709120722);
+    replacement_t* repl = createIntReplacement(path, 709120722);
     ck_assert_int_eq(0, repl->paramType);
     ck_assert_str_eq(path, repl->path);
     ck_assert_int_eq(4, repl->value_len);
@@ -29,7 +29,7 @@ END_TEST
 START_TEST(test_create_double_replacement) {
     char* path = "xyz";
     double val = -1985691576917547.5;
-    struct Replacement* repl = createDoubleReplacement(path, val);
+    replacement_t* repl = createDoubleReplacement(path, val);
     ck_assert_int_eq(1, repl->paramType);
     ck_assert_str_eq(path, repl->path);
     ck_assert_int_eq(8, repl->value_len);

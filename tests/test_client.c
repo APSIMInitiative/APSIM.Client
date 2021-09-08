@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 #include "replacement.h"
-#include "client.h"
+#include "apsimclient.h"
 #include "client-private.h"
 
 //tmp
@@ -197,7 +197,7 @@ void send_to_client(char* message) {
  * protocol.
  * @return The replacement struct send by the client.
  */
-struct Replacement* read_replacement_from_client() {
+replacement_t* read_replacement_from_client() {
     // 1. Read parameter path.
     uint32_t path_len;
     char* path = (char*)read_from_client(&path_len);
@@ -222,7 +222,7 @@ struct Replacement* read_replacement_from_client() {
     char* param_value = (char*)read_from_client(&param_len);
     send_to_client("ACK");
     
-    struct Replacement* replacement = malloc(sizeof(struct Replacement));
+    replacement_t* replacement = malloc(sizeof(replacement_t));
     replacement->path = path;
     replacement->paramType = param_type;
     replacement->value_len = param_len;
@@ -233,7 +233,7 @@ struct Replacement* read_replacement_from_client() {
 /**
  * Assert that two replacement structs are equal.
  */
-void assert_replacements_equal(struct Replacement* expected, struct Replacement* actual) {
+void assert_replacements_equal(replacement_t* expected, replacement_t* actual) {
     if (expected->paramType != actual->paramType) {
         teardown();
         ck_assert_int_eq(expected->paramType, actual->paramType);
@@ -258,11 +258,11 @@ void assert_replacements_equal(struct Replacement* expected, struct Replacement*
  * Use the client API to send a Replacement struct to the server, and ensure
  * that the data transmission follows the replacements protocol.
  */
-void test_send_replacement(struct Replacement* change) {
+void test_send_replacement(replacement_t* change) {
     pthread_t tid;
     pthread_create(&tid, NULL, (void*)read_replacement_from_client, NULL);
     sendReplacementToSocket(client_socket, change);
-    struct Replacement* from_client;
+    replacement_t* from_client;
     pthread_join(tid, (void**)&from_client);
 
     assert_replacements_equal(change, from_client);
@@ -274,7 +274,7 @@ void test_send_replacement(struct Replacement* change) {
  * @param num_changes the number of changes to expect.
  * @return the changes sent by the client.
  */
-struct Replacement** read_run_command_from_client(uint32_t* num_changes) {
+replacement_t** read_run_command_from_client(uint32_t* num_changes) {
     // 1. We expect "RUN" from the client.
     uint32_t msg_len;
     char* msg = (char*)read_from_client(&msg_len);
@@ -291,7 +291,7 @@ struct Replacement** read_run_command_from_client(uint32_t* num_changes) {
     send_to_client("ACK");
 
     // 2. The client will now send through the changes one by one.
-    struct Replacement** changes = malloc(*num_changes * sizeof(struct Replacement*));
+    replacement_t** changes = malloc(*num_changes * sizeof(replacement_t*));
     for (uint32_t i = 0; i < *num_changes; i++) {
         changes[i] = read_replacement_from_client();
     }
@@ -314,9 +314,9 @@ struct Replacement** read_run_command_from_client(uint32_t* num_changes) {
     return changes;
 }
 
-void run_with_changes(struct Replacement** changes, uint32_t nchanges) {
+void run_with_changes(replacement_t** changes, uint32_t nchanges) {
     pthread_t tid;
-    struct Replacement** changes_from_client;
+    replacement_t** changes_from_client;
     int err = pthread_create(&tid, NULL, (void*)read_run_command_from_client, &nchanges);
     if (err != 0) {
         printf("pthread_join() error: %s\n", strerror(errno));
@@ -456,7 +456,7 @@ START_TEST(test_send_replacement_to_server) {
     establish_connection();
 
     uint32_t nchanges = 2;
-    struct Replacement* changes[nchanges];
+    replacement_t* changes[nchanges];
     changes[0] = createIntReplacement("xyz", -65536);
     changes[1] = createDoubleReplacement("[Wheat].Path", -11400000.5);
     for (uint32_t i = 0; i < nchanges; i++) {
@@ -469,7 +469,7 @@ END_TEST
 START_TEST(test_run_with_changes) {
     establish_connection();
 
-    struct Replacement* change = createDoubleReplacement("xyz", 12.5);
+    replacement_t* change = createDoubleReplacement("xyz", 12.5);
     run_with_changes(&change, 1);
     replacement_free(change);
 
@@ -478,7 +478,7 @@ START_TEST(test_run_with_changes) {
     replacement_free(change);
 
     int nchanges = 10;
-    struct Replacement** changes = malloc(nchanges * sizeof(struct Replacement*));
+    replacement_t** changes = malloc(nchanges * sizeof(replacement_t*));
     for (uint32_t i = 0; i < nchanges; i++) {
         char path[11];
         sprintf(path, "change[%u]", i);

@@ -9,25 +9,25 @@
 #include <time.h>
 
 #include "replacement.h"
-#include "client.h"
+#include "apsimclient.h"
 
 int main(int argc, char** argv)
 {
     // This is the name of the pipe as defined in the C# server code.
-    char *pipeName = "testpipe";
+    // char *pipeName = "testpipe";
 
     // Connect to the socket.
     printf("Connecting to server...");
     fflush(stdout);
-    int sock = connectToServer(pipeName);
+    int sock = connectToRemoteServer("127.0.0.1", 27747);
     printf("connected\n");
 
     // OK, let's try and kick off a simulation run.
     // We will be mofifying the juvenile TT target.
     char* path = "[Sorghum].Phenology.Juvenile.Target.FixedValue";
     double value = 120.5;
-    for (int iter = 0; iter < 100; iter++) {
-        struct Replacement* change = createDoubleReplacement(path, value);
+    for (int iter = 0; iter < 1; iter++) {
+        replacement_t* change = createDoubleReplacement(path, value);
         printf("Running sims with the following changes:\n");
         printf("  %s = %.2f\n", path, value);
         runWithChanges(sock, &change, 1);
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         printf(" ");
         clock_t t = clock();
 
-        struct output** outputs = readOutput(sock, table, params, nparams);
+        output_t** outputs = readOutput(sock, table, params, nparams);
         t = clock() - t;
         double duration = 1000 * (double)t / CLOCKS_PER_SEC;
         printf("Read %d outputs in %.2fms\n", nparams, duration);

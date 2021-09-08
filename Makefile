@@ -13,10 +13,11 @@ clean:
 	$(RM) libapsimclient.so example unittests
 install:
 	install -m 755 libapsimclient.so $(INST)/lib
-	install -m 644 src/replacement.h src/client.h $(INST)/include
+	install -m 644 src/replacement.h src/apsimclient.h $(INST)/include
+	install -m 644 src/apsimclient.pc $(INST)/lib/pkgconfig
 uninstall:
 	$(RM) $(INST)/lib/libapsimclient.so
-	$(RM) $(INST)/include/replacement.h $(INST)/include/client.h
+	$(RM) $(INST)/include/replacement.h $(INST)/include/apsimclient.h
 
 libapsimclient.so: src/client.c src/replacement.c
 	$(CC) -I $(INCLUDES) $(CFLAGS) -shared $^ -o $@

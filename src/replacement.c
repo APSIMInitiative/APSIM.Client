@@ -15,8 +15,8 @@ const int PROPERTY_TYPE_BOOL_ARRAY = 7;
 const int PROPERTY_TYPE_DATE_ARRAY = 8;
 const int PROPERTY_TYPE_STRING_ARRAY = 9;
 
-struct Replacement* createIntReplacement(char* path, int32_t value) {
-    struct Replacement* result = malloc(sizeof(struct Replacement));
+replacement_t* createIntReplacement(char* path, int32_t value) {
+    replacement_t* result = malloc(sizeof(replacement_t));
     result->path = path;
     result->paramType = PROPERTY_TYPE_INT;
     result->value = malloc(sizeof(int32_t));
@@ -26,8 +26,8 @@ struct Replacement* createIntReplacement(char* path, int32_t value) {
     return result;
 }
 
-struct Replacement* createDoubleReplacement(char* path, double value) {
-    struct Replacement* result = malloc(sizeof(struct Replacement));
+replacement_t* createDoubleReplacement(char* path, double value) {
+    replacement_t* result = malloc(sizeof(replacement_t));
     result->path = path;
     result->paramType = PROPERTY_TYPE_DOUBLE;
     // result->value = (char*)&value;
@@ -38,7 +38,7 @@ struct Replacement* createDoubleReplacement(char* path, double value) {
 }
 
 // Free a replacement instance.
-void replacement_free(struct Replacement* replacement) {
+void replacement_free(replacement_t* replacement) {
     free(replacement->value);
     free(replacement);
 }

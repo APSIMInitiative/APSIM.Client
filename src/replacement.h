@@ -1,16 +1,16 @@
 #include <stdint.h>
-struct Replacement
+typedef struct Replacement
 {
     char* path;
     int32_t paramType;
     char* value;
     int value_len;
-};
+} replacement_t;
 
-struct Replacement* createIntReplacement(char* path, int32_t value);
-struct Replacement* createDoubleReplacement(char* path, double value);
+replacement_t* createIntReplacement(char* path, int32_t value);
+replacement_t* createDoubleReplacement(char* path, double value);
 
 // Free a replacement instance.
-void replacement_free(struct Replacement* replacement);
+void replacement_free(replacement_t* replacement);
 
 // TODO: bool, date, string replacements.

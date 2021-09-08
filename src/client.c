@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "replacement.h"
-#include "client.h"
+#include "apsimclient.h"
 #include "client-private.h"
 
 const char* ACK = "ACK";
@@ -146,7 +146,7 @@ void sendStringToSocket(int sock, const char* msg) {
 // Send the replacement/property change to the server.
 // The protocol is to send the path, then parameter type, then value.
 // The server should responsd with ACK after each message.
-void sendReplacementToSocket(int sock, struct Replacement* change) {
+void sendReplacementToSocket(int sock, replacement_t* change) {
     // 1. Send parameter path.
     sendStringToSocket(sock, change->path);
     validateResponse(sock, ACK);
@@ -161,7 +161,7 @@ void sendReplacementToSocket(int sock, struct Replacement* change) {
 }
 
 // Tell the server to re-run the file with the specified changes.
-void runWithChanges(int sock, struct Replacement** changes, unsigned int n) {
+void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
     sendStringToSocket(sock, COMMAND_RUN);
     validateResponse(sock, ACK);
     for (int i = 0; i < n; i++) {
@@ -196,7 +196,7 @@ void runWithChanges(int sock, struct Replacement** changes, unsigned int n) {
 // 5c) Send items one by one (receive ACK after each)
 // 6. Send FIN
 // 7. Receive one message per parameter name sent. Send ACK after each.
-struct output** readOutput(int sock, char* table, char** param_names, uint32_t nparams) {
+output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparams) {
     // 1. Send READ command.
     sendStringToSocket(sock, COMMAND_READ);
     // 2. Receive ACK.
@@ -213,11 +213,11 @@ struct output** readOutput(int sock, char* table, char** param_names, uint32_t n
     }
     // Send FIN to indicate end of parameter names.
     sendStringToSocket(sock, FIN);
-    struct output** outputs = malloc(nparams * sizeof(struct output));
+    output_t** outputs = malloc(nparams * sizeof(output_t));
 
     // Now we should receive one result per parameter name.
     for (uint32_t i = 0; i < nparams; i++) {
-        outputs[i] = malloc(sizeof(struct output));
+        outputs[i] = malloc(sizeof(output_t));
         outputs[i]->data = readFromSocket(sock, &outputs[i]->len);
         sendStringToSocket(sock, ACK);
     }
