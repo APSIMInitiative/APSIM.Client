@@ -1,4 +1,9 @@
+#ifndef _APSIM_CLIENT_H
+#define _APSIM_CLIENT_H
+
 #include <stdint.h>
+#include "replacement.h"
+
 typedef struct output
 {
     char* data;
@@ -26,3 +31,5 @@ void disconnectFromServer(int fd);
 // specified table. It's up to the caller to cast/interpret
 // the return value.
 output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparams);
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef _REPLACEMENT_H
+#define _REPLACEMENT_H
+
 #include <stdint.h>
 typedef struct Replacement
 {
@@ -14,3 +17,5 @@ replacement_t* createDoubleReplacement(char* path, double value);
 void replacement_free(replacement_t* replacement);
 
 // TODO: bool, date, string replacements.
+
+#endif
