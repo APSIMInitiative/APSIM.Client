@@ -1,7 +1,6 @@
-CC=gcc
+SHELL=/bin/bash
 CFLAGS= -Wall -O3 -fPIC
 LDFLAGS=-lapsimclient
-RM= rm -f
 INCLUDES=src/
 CHECKFLAGS=`pkg-config --cflags --libs check`
 OUTPUT=libapsimclient.so
