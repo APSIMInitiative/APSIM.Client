@@ -175,7 +175,7 @@ void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
     char* resp = readFromSocket(sock, &msg_len);
     int err = strcmp(resp, FIN) != 0;
     if (err) {
-        printf("Command ran with errors: %s\n", resp);
+        printf("Command ran with errors: %.*s\n", msg_len, resp);
     }
     free(resp);
     assert(!err);
@@ -195,7 +195,10 @@ void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
 // 5b) Receive ACK
 // 5c) Send items one by one (receive ACK after each)
 // 6. Send FIN
-// 7. Receive one message per parameter name sent. Send ACK after each.
+// 7. Receive FIN (after command finishes running)
+// 7a.If command ran with error, we will receive error message instead of FIN
+// 8. Send ACK
+// 9. Receive one message per parameter name sent. Send ACK after each.
 output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparams) {
     // 1. Send READ command.
     sendStringToSocket(sock, COMMAND_READ);
@@ -213,6 +216,23 @@ output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparam
     }
     // Send FIN to indicate end of parameter names.
     sendStringToSocket(sock, FIN);
+
+    // Server will send FIN if command executed succesfully, or an error
+    // message otherwise.
+    // Server will send through a second response when the command finishes
+    // (FIN for success, otherwise a longer string detailing the error).
+    uint32_t msg_len;
+    char* resp = readFromSocket(sock, &msg_len);
+    int err = strcmp(resp, FIN) != 0;
+    if (err) {
+        fprintf(stderr, "ReadCommand ran with errors: %.*s\n", msg_len, resp);
+    }
+    free(resp);
+    assert(!err);
+
+    // Send ACK.
+    sendStringToSocket(sock, ACK);
+
     output_t** outputs = malloc(nparams * sizeof(output_t));
 
     // Now we should receive one result per parameter name.
