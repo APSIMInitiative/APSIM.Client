@@ -15,11 +15,19 @@ int main(int argc, char** argv)
 {
     // This is the name of the pipe as defined in the C# server code.
     // char *pipeName = "testpipe";
+    char* ipAddress = argc > 1 ? argv[1] : "127.0.0.1";
+    uint16_t port = 27746;
+    if (argc > 2) {
+        int portNo = atoi(argv[2]);
+        assert(portNo <= UINT16_MAX);
+        assert(portNo >= 0);
+        port = (uint16_t)portNo;
+    }
 
     // Connect to the socket.
-    printf("Connecting to server...");
+    printf("Connecting to server on %s:%u...", ipAddress, port);
     fflush(stdout);
-    int sock = connectToRemoteServer("127.0.0.1", 27747);
+    int sock = connectToRemoteServer(ipAddress, port);
     printf("connected\n");
 
     // OK, let's try and kick off a simulation run.
