@@ -1,5 +1,5 @@
 SHELL=/bin/bash
-CFLAGS= -Wall -O3 -fPIC
+CFLAGS= -Wall -Werror -pedantic -O3 -fPIC
 LDFLAGS=-lapsimclient
 INCLUDES=src/
 CHECKFLAGS=`pkg-config --cflags --libs check`

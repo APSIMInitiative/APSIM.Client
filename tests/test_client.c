@@ -141,10 +141,11 @@ void establish_connection() {
 // Read a message from the client, using the expected protocol.
 /*
  * Read a message from the client, using the expected protocol.
- * @param msg_length an int* whose value will be set to the message length.
- * @return The message received from the client (must be freed by the caller).
+ * @param   in      int*        Message length.
+ * @return          char*       The message received from the client (must be freed by the caller).
  */
-unsigned char* read_from_client(uint32_t* msg_length) {
+void* read_from_client(void* in) {
+    uint32_t* msg_length = (uint32_t*)in;
     char msg_len[4];
     int err = read(connection_socket, msg_len, 4);
     if (err < 0) {
@@ -170,10 +171,11 @@ unsigned char* read_from_client(uint32_t* msg_length) {
 
 /**
  * Send a message to the client, using the expected protocol.
- * @param message the message.
- * @return Nothing.
+ * @param in            char*       the message.
+ * @return              NULL        Nothing.
  */
-void send_to_client(char* message) {
+void* send_to_client(void* in) {
+    char* message = (char*)in;
     size_t len = strlen(message);
     // Send message length.
     int err = send(connection_socket, (char*)&len, 4, 0);
@@ -190,14 +192,15 @@ void send_to_client(char* message) {
         teardown();
         ck_assert_int_eq(len, err);
     }
+    return NULL;
 }
 
 /*
  * Read a Replacement struct from the client, using the expected
  * protocol.
- * @return The replacement struct send by the client.
+ * @return      replacemtn_t*       The replacement struct send by the client.
  */
-replacement_t* read_replacement_from_client() {
+void* read_replacement_from_client() {
     // 1. Read parameter path.
     uint32_t path_len;
     char* path = (char*)read_from_client(&path_len);
@@ -260,7 +263,7 @@ void assert_replacements_equal(replacement_t* expected, replacement_t* actual) {
  */
 void test_send_replacement(replacement_t* change) {
     pthread_t tid;
-    pthread_create(&tid, NULL, (void*)read_replacement_from_client, NULL);
+    pthread_create(&tid, NULL, read_replacement_from_client, NULL);
     sendReplacementToSocket(client_socket, change);
     replacement_t* from_client;
     pthread_join(tid, (void**)&from_client);
@@ -271,10 +274,11 @@ void test_send_replacement(replacement_t* change) {
 
 /**
  * Read a RUN command from the client.
- * @param num_changes the number of changes to expect.
+ * @param in the number of changes to expect.
  * @return the changes sent by the client.
  */
-replacement_t** read_run_command_from_client(uint32_t* num_changes) {
+void* read_run_command_from_client(void* in) {
+    uint32_t* num_changes = (uint32_t*)in;
     // 1. We expect "RUN" from the client.
     uint32_t msg_len;
     char* msg = (char*)read_from_client(&msg_len);
@@ -317,7 +321,7 @@ replacement_t** read_run_command_from_client(uint32_t* num_changes) {
 void run_with_changes(replacement_t** changes, uint32_t nchanges) {
     pthread_t tid;
     replacement_t** changes_from_client;
-    int err = pthread_create(&tid, NULL, (void*)read_run_command_from_client, &nchanges);
+    int err = pthread_create(&tid, NULL, read_run_command_from_client, &nchanges);
     if (err != 0) {
         printf("pthread_join() error: %s\n", strerror(errno));
         teardown();
@@ -390,7 +394,7 @@ START_TEST(test_send_to_server) {
     establish_connection();
     int message_length;
     pthread_t tid;
-    int err = pthread_create(&tid, NULL, (void*)read_from_client, &message_length);
+    int err = pthread_create(&tid, NULL, read_from_client, &message_length);
     if (err != 0) {
         printf("pthread_create() failure: %s\n", strerror(errno));
         teardown();
@@ -422,7 +426,7 @@ START_TEST(test_read_from_server) {
     establish_connection();
     char* message_to_client = "this is a message from the server, to the client!";
     pthread_t tid;
-    int err = pthread_create(&tid, NULL, (void*)send_to_client, message_to_client);
+    int err = pthread_create(&tid, NULL, send_to_client, message_to_client);
     if (err != 0) {
         printf("pthread_create() failure: %s\n", strerror(errno));
         teardown();
