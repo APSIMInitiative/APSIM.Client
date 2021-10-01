@@ -35,6 +35,12 @@ int main(int argc, char** argv)
         assert(portNo >= 0);
         port = (uint16_t)portNo;
     }
+    int n_iter = 1;
+    if (argc > 3) {
+        int iter = atoi(argv[3]);
+        assert(iter > 0);
+        n_iter = iter;
+    }
 
     // Connect to the socket.
     printf("Connecting to server on %s:%u...", ipAddress, port);
@@ -46,7 +52,7 @@ int main(int argc, char** argv)
     // We will be mofifying the juvenile TT target.
     char* path = "[Sorghum].Phenology.Juvenile.Target.FixedValue";
     double value = 120.5;
-    for (int iter = 0; iter < 1; iter++) {
+    for (int iter = 0; iter < n_iter; iter++) {
         replacement_t* change = createDoubleReplacement(path, value);
         printf("Running sims with the following changes:\n");
         printf("  %s = %.2f\n", path, value);
