@@ -26,7 +26,7 @@ void connectTo(int sock, struct sockaddr* address, socklen_t length) {
     int err;
     while ( (err = connect(sock, address, length) < 0) || errno == EINTR);
     if (err < 0 && errno != EINTR) {
-        printf("connect() failure: %s\n", strerror(errno));
+        fprintf(stderr, "connect() failure: %s\n", strerror(errno));
     }
     assert(err >= 0);
 }
@@ -131,7 +131,7 @@ void validateResponse(int sock, const char* expected) {
     uint32_t len;
     char* resp = readFromSocket(sock, &len);
     if (strcmp(resp, expected) != 0) {
-        printf("Expected response '%s' but got '%s'\n", expected, resp);
+        fprintf(stderr, "Expected response '%s' but got '%s'\n", expected, resp);
         assert(strcmp(resp, expected) == 0);
     }
     free(resp);
@@ -175,7 +175,7 @@ void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
     char* resp = readFromSocket(sock, &msg_len);
     int err = strcmp(resp, FIN) != 0;
     if (err) {
-        printf("Command ran with errors: %.*s\n", msg_len, resp);
+        fprintf(stderr, "Command ran with errors: %.*s\n", msg_len, resp);
     }
     free(resp);
     assert(!err);
