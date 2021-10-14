@@ -43,10 +43,9 @@ int main(int argc, char** argv)
     }
 
     // Connect to the socket.
-    printf("Connecting to server on %s:%u...", ipAddress, port);
-    fflush(stdout);
+    fprintf(stdout, "Connecting to server on %s:%u...", ipAddress, port);
     int sock = connectToRemoteServer(ipAddress, port);
-    printf("connected\n");
+    fprintf(stdout, "connected\n");
 
     // OK, let's try and kick off a simulation run.
     // We will be mofifying the juvenile TT target.
@@ -54,8 +53,8 @@ int main(int argc, char** argv)
     double value = 120.5;
     for (int iter = 0; iter < n_iter; iter++) {
         replacement_t* change = createDoubleReplacement(path, value);
-        printf("Running sims with the following changes:\n");
-        printf("  %s = %.2f\n", path, value);
+        fprintf(stdout, "Running sims with the following changes:\n");
+        fprintf(stdout, "  %s = %.2f\n", path, value);
         double run_clock = get_wall_time();
         runWithChanges(sock, &change, 1);
         run_clock = get_wall_time() - run_clock;
@@ -70,7 +69,6 @@ int main(int argc, char** argv)
         params[0] = "BiomassWt";
         // params[1] = "Sorghum.AboveGround.Wt";
         // params[2] = "Sorghum.Leaf.LAI";
-        printf(" ");
         double t = get_wall_time();
 
         output_t** outputs = readOutput(sock, table, params, nparams);
