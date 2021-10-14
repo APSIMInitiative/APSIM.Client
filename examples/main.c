@@ -50,8 +50,11 @@ int main(int argc, char** argv)
     // OK, let's try and kick off a simulation run.
     // We will be mofifying the juvenile TT target.
     char* path = "[Sorghum].Phenology.Juvenile.Target.FixedValue";
-    double value = 120.5;
+    double minValue = 120;
+    double maxValue = 300;
+    double increment = (maxValue - minValue) / n_iter;
     for (int iter = 0; iter < n_iter; iter++) {
+        double value = minValue + iter * increment;
         replacement_t* change = createDoubleReplacement(path, value);
         fprintf(stdout, "Running sims with the following changes:\n");
         fprintf(stdout, "  %s = %.2f\n", path, value);
@@ -87,7 +90,6 @@ int main(int argc, char** argv)
             printf("]\n\n");
         }
         free(outputs);
-        value += 5;
     }
     // Close the socket connection.
     printf("Disconnecting from server...\n");
