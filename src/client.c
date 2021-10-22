@@ -107,20 +107,14 @@ char* readFromSocket(int sock, uint32_t* len) {
     resp[n] = 0; // n+1-th index
 
     // Read n bytes
-    err = read(sock, resp, n);
-    assert(err >= 0);
-
-    // if (verbose)
-    // printf("RECV ");
-    // for (int i = 0; i < 4; i++) {
-    //     printf("%02x ", length_raw[i]);
-    // }
-    // printf("n = %u: ", n);
-    // for (uint32_t i = 0; i < n - 1; i++) {
-    //     printf("%02x ", resp[i]);
-    // }
-    // printf("\n");
-
+    uint32_t total_read = 0;
+    while (total_read < n) {
+        err = read(sock, resp + total_read, n - total_read);
+        assert(err >= 0);
+        total_read += err;
+        if (err == 0)
+            break;
+    }
     *len = n;
     return (char*)resp;
 }
