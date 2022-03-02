@@ -59,6 +59,50 @@ START_TEST(test_create_double_replacement) {
 }
 END_TEST
 
+START_TEST(test_create_double_array_replacement) {
+    char* path = "x";
+    int length = 3;
+    double values[3] = { 0.75, 0.25, -0.25 };
+
+    replacement_t* repl = createDoubleArrayReplacement(path, values, length);
+    ck_assert_int_eq(6, repl->paramType);
+    ck_assert_str_eq(path, repl->path);
+    ck_assert_int_eq(24, repl->value_len);
+    unsigned char expected[24] = {
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0xe8,
+        0x3f,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0xd0,
+        0x3f,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0xd0,
+        0xbf,
+    };
+    for (int i = 0; i < 24; i++) {
+        unsigned char exp = expected[i];
+        unsigned char act = repl->value[i];
+        ck_assert_uint_eq(exp, act);
+    }
+
+    replacement_free(repl);
+}
+
 Suite* replacements_test_suite() {
     Suite* suite;
     TCase* test_case;
@@ -68,6 +112,7 @@ Suite* replacements_test_suite() {
 
     tcase_add_test(test_case, test_create_int_replacement);
     tcase_add_test(test_case, test_create_double_replacement);
+    tcase_add_test(test_case, test_create_double_array_replacement);
 
     suite_add_tcase(suite, test_case);
     return suite;

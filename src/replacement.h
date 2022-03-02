@@ -13,6 +13,17 @@ typedef struct Replacement
 replacement_t* createIntReplacement(char* path, int32_t value);
 replacement_t* createDoubleReplacement(char* path, double value);
 
+/*
+Create a replacement representing a change for a numeric array.
+
+@param path: Apsim path to the variable to be changed
+@param value: The new value of the variable
+@param length: Length of the value array
+
+@return a replacement representing a change for the numeric array.
+*/
+replacement_t* createDoubleArrayReplacement(char* path, double* value, int length);
+
 // Free a replacement instance.
 void replacement_free(replacement_t* replacement);
 
