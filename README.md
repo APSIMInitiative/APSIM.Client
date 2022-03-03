@@ -14,7 +14,7 @@ Compilation requires that GNU make/gcc and pkg-config are installed. I've not at
 
 Building/running the unit tests requires that [`libcheck`](https://github.com/libcheck/check) is installed.
 
-## Comilation
+## Compilation
 
 `make`
 
