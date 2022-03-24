@@ -69,7 +69,7 @@ int main(int argc, char** argv)
         char* table = "Report";
         uint32_t nparams = 1;
         char* params[nparams];
-        params[0] = "BiomassWt";
+        params[0] = "Yield";
         // params[1] = "Sorghum.AboveGround.Wt";
         // params[2] = "Sorghum.Leaf.LAI";
         double t = get_wall_time();

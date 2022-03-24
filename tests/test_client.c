@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <check.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -9,6 +10,7 @@
 #include "replacement.h"
 #include "apsimclient.h"
 #include "client-private.h"
+#include "protocol.h"
 
 //tmp
 #include <stdlib.h>
@@ -114,14 +116,14 @@ void establish_connection() {
 
     int err = bind(server_socket, (struct sockaddr*)&address, addr_len);
     if (err < 0) {
-        printf("bind() failure: %s\n", strerror(errno));
+        fprintf(stderr, "bind() failure: %s\n", strerror(errno));
         teardown();
         ck_assert_int_eq(0, err);
     }
 
     err = listen(server_socket, 10);
     if (err < 0) {
-        printf("listen() failure: %s\n", strerror(errno));
+        fprintf(stderr, "listen() failure: %s\n", strerror(errno));
         teardown();
         ck_assert_int_eq(0, err);
     }
@@ -132,7 +134,7 @@ void establish_connection() {
     // Accept the incoming connection from the client.
     connection_socket = accept(server_socket, (struct sockaddr*)&address, (socklen_t*)&addr_len);
     if (connection_socket < 0) {
-        printf("accept() failure: %s\n", strerror(errno));
+        fprintf(stderr, "accept() failure: %s\n", strerror(errno));
         teardown();
         ck_assert_int_ge(connection_socket, 0);
     }
@@ -141,10 +143,10 @@ void establish_connection() {
 // Read a message from the client, using the expected protocol.
 /*
  * Read a message from the client, using the expected protocol.
- * @param   in      int*        Message length.
+ * @param   in      int*        Message length. (out parameter)
  * @return          char*       The message received from the client (must be freed by the caller).
  */
-void* read_from_client(void* in) {
+void* read_from_client_detect_length(void* in) {
     uint32_t* msg_length = (uint32_t*)in;
     char msg_len[4];
     int err = read(connection_socket, msg_len, 4);
@@ -166,6 +168,28 @@ void* read_from_client(void* in) {
         ck_assert_int_eq(n, err);
     }
     *msg_length = n;
+    return buf;
+}
+
+/**
+ * Read a message with the given length from the client.
+ * @param   in      int*          Message length (in parameter).
+ * @return          char*         Message received from the client (must be freed by the caller).
+ */
+void* read_from_client_with_length(void* in) {
+    uint32_t msg_length = *(uint32_t*)in;
+    unsigned char* buf = malloc((msg_length + 1) * sizeof(unsigned char));
+    buf[msg_length] = 0;
+    int err = read(connection_socket, buf, msg_length);
+    if (err < 0) {
+        printf("read() failure: %s\n", strerror(errno));
+        teardown();
+        ck_assert_int_eq(msg_length, err);
+    }
+    if (err != msg_length) {
+        fprintf(stderr, "read() failure: Expected %d bytes but got %d\n", msg_length, err);
+        assert(err == msg_length);
+    }
     return buf;
 }
 
@@ -203,17 +227,12 @@ void* send_to_client(void* in) {
 void* read_replacement_from_client() {
     // 1. Read parameter path.
     uint32_t path_len;
-    char* path = (char*)read_from_client(&path_len);
+    char* path = (char*)read_from_client_detect_length(&path_len);
     send_to_client("ACK");
 
     // 2. Read parameter type.
-    uint32_t param_type_len;
-    char* param_type_bytes = (char*)read_from_client(&param_type_len);
-    if (param_type_len != 4) {
-        printf("Incorrect param_type_len. Expected 4, got %d", param_type_len);
-        teardown();
-        ck_assert_int_eq(4, param_type_len);
-    }
+    uint32_t length = sizeof(int);
+    char* param_type_bytes = (char*)read_from_client_with_length(&length);
     int32_t param_type = 0;
     for (uint32_t i = 0; i < 4; i++) {
         param_type += param_type_bytes[i] << i;
@@ -222,7 +241,15 @@ void* read_replacement_from_client() {
     send_to_client("ACK");
     
     uint32_t param_len;
-    char* param_value = (char*)read_from_client(&param_len);
+    if (param_type == 0)
+        param_len = sizeof(int32_t);
+    else if (param_type == 1)
+        param_len = sizeof(double);
+    else {
+        fprintf(stderr, "tbi: serverside parameter handling for param type %d\n", param_type);
+        assert (param_type == 0 || param_type == 1);
+    }
+    char* param_value = (char*)read_from_client_with_length(&param_len);
     send_to_client("ACK");
     
     replacement_t* replacement = malloc(sizeof(replacement_t));
@@ -281,7 +308,7 @@ void* read_run_command_from_client(void* in) {
     uint32_t* num_changes = (uint32_t*)in;
     // 1. We expect "RUN" from the client.
     uint32_t msg_len;
-    char* msg = (char*)read_from_client(&msg_len);
+    char* msg = (char*)read_from_client_detect_length(&msg_len);
     if (msg_len != 3) {
         teardown();
         ck_assert_int_eq(3, msg_len);
@@ -301,7 +328,7 @@ void* read_run_command_from_client(void* in) {
     }
 
     // 3. The client will now send through a "FIN".
-    msg = (char*)read_from_client(&msg_len);
+    msg = (char*)read_from_client_detect_length(&msg_len);
     if (msg_len != 3) {
         teardown();
         ck_assert_int_eq(3, msg_len);
@@ -394,7 +421,7 @@ START_TEST(test_send_to_server) {
     establish_connection();
     int message_length;
     pthread_t tid;
-    int err = pthread_create(&tid, NULL, read_from_client, &message_length);
+    int err = pthread_create(&tid, NULL, read_from_client_detect_length, &message_length);
     if (err != 0) {
         printf("pthread_create() failure: %s\n", strerror(errno));
         teardown();
@@ -402,7 +429,7 @@ START_TEST(test_send_to_server) {
     }
     char* message = "hello, there";
     int expected_length = strlen(message);
-    sendToSocket(client_socket, message, expected_length);
+    sendString(client_socket, message);
     char* from_client;
     pthread_join(tid, (void**)&from_client);
     if (err != 0) {
@@ -435,7 +462,7 @@ START_TEST(test_read_from_server) {
 
     uint32_t expected_length = strlen(message_to_client);
     uint32_t actual_length;
-    char* from_server = readFromSocket(client_socket, &actual_length);
+    char* from_server = readString(client_socket, &actual_length);
     err = pthread_join(tid, NULL);
     if (err != 0) {
         printf("pthread_create() failure: %s\n", strerror(errno));
@@ -458,7 +485,6 @@ END_TEST
 
 START_TEST(test_send_replacement_to_server) {
     establish_connection();
-
     uint32_t nchanges = 2;
     replacement_t* changes[nchanges];
     changes[0] = createIntReplacement("xyz", -65536);

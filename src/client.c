@@ -13,6 +13,7 @@
 #include "replacement.h"
 #include "apsimclient.h"
 #include "client-private.h"
+#include "protocol.h"
 
 const char* ACK = "ACK";
 const char* FIN = "FIN";
@@ -70,60 +71,11 @@ void disconnectFromServer(int fd) {
     assert(err >= 0);
 }
 
-// Send a message over the socket connection, in a format that APSIM
-// will recognise.
-// The protocol is as folows:
-// 1. Send 4 bytes indicating message length.
-// 2. Send message (number of bytes must be as indicated earlier).
-//
-// Therefore, the max message length (in chars) is 2^31 - 1. This
-// is because apsim reads message length as a 32-bit signed int.
-void sendToSocket(int sock, const char *msg, size_t len) {
-    // Ensure the message is not too long.
-    long maxLength = ((long)1 << 31) - 1;
-    assert(len < maxLength);
-
-    // Send message length.
-    int err = send(sock, (char*)&len, 4, 0);
-    assert(err >= 0);
-
-    // Send the message itself.
-    err = send(sock, msg, len, 0);
-    assert(err >= 0);
-}
-
-// Read the server's response over the socket.
-char* readFromSocket(int sock, uint32_t* len) {
-    // Read message length (4 bytes).
-    unsigned char length_raw[4];
-    int err = read(sock, length_raw, 4);
-    assert(err >= 0);
-
-    uint32_t n;
-    memcpy(&n, length_raw, 4);
-
-    // Allocate 1 extra byte, to allow for a null terminator.
-    unsigned char* resp = malloc((n + 1) * sizeof(unsigned char));
-    resp[n] = 0; // n+1-th index
-
-    // Read n bytes
-    uint32_t total_read = 0;
-    while (total_read < n) {
-        err = read(sock, resp + total_read, n - total_read);
-        assert(err >= 0);
-        total_read += err;
-        if (err == 0)
-            break;
-    }
-    *len = n;
-    return (char*)resp;
-}
-
 // Read a message from the server and ensure that it matches the
 // expected value.
 void validateResponse(int sock, const char* expected) {
     uint32_t len;
-    char* resp = readFromSocket(sock, &len);
+    char* resp = readString(sock, &len);
     if (strcmp(resp, expected) != 0) {
         fprintf(stderr, "Expected response '%s' but got '%s'\n", expected, resp);
         assert(strcmp(resp, expected) == 0);
@@ -131,22 +83,16 @@ void validateResponse(int sock, const char* expected) {
     free(resp);
 }
 
-// Send a text message to the server. This is just a shorthand for
-// calling sendToSocket with strlen() for the length parameter.
-void sendStringToSocket(int sock, const char* msg) {
-    sendToSocket(sock, msg, strlen(msg));
-}
-
 // Send the replacement/property change to the server.
 // The protocol is to send the path, then parameter type, then value.
 // The server should responsd with ACK after each message.
 void sendReplacementToSocket(int sock, replacement_t* change) {
     // 1. Send parameter path.
-    sendStringToSocket(sock, change->path);
+    sendString(sock, change->path);
     validateResponse(sock, ACK);
 
     // 2. Send parameter type.
-    sendToSocket(sock, (char*)&change->paramType, sizeof(int32_t));
+    sendInt(sock, change->paramType);
     validateResponse(sock, ACK);
 
     // 3. Send the parameter itself.
@@ -156,17 +102,17 @@ void sendReplacementToSocket(int sock, replacement_t* change) {
 
 // Tell the server to re-run the file with the specified changes.
 void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
-    sendStringToSocket(sock, COMMAND_RUN);
+    sendString(sock, COMMAND_RUN);
     validateResponse(sock, ACK);
     for (int i = 0; i < n; i++) {
         sendReplacementToSocket(sock, changes[i]);
     }
-    sendStringToSocket(sock, FIN);
+    sendString(sock, FIN);
     validateResponse(sock, ACK);
     // Server will send through a second response when the command finishes
     // (FIN for success, otherwise a longer string detailing the error).
     uint32_t msg_len;
-    char* resp = readFromSocket(sock, &msg_len);
+    char* resp = readString(sock, &msg_len);
     int err = strcmp(resp, FIN) != 0;
     if (err) {
         fprintf(stderr, "Command ran with errors: %.*s\n", msg_len, resp);
@@ -195,28 +141,28 @@ void runWithChanges(int sock, replacement_t** changes, unsigned int n) {
 // 9. Receive one message per parameter name sent. Send ACK after each.
 output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparams) {
     // 1. Send READ command.
-    sendStringToSocket(sock, COMMAND_READ);
+    sendString(sock, COMMAND_READ);
     // 2. Receive ACK.
     validateResponse(sock, ACK);
     // 3. Send table name.
-    sendStringToSocket(sock, table);
+    sendString(sock, table);
     // 4. Receive ACK.
     validateResponse(sock, ACK);
     // 5. Send parameter names one at a time.
     for (uint32_t i = 0; i < nparams; i++) {
-        sendStringToSocket(sock, param_names[i]);
+        sendString(sock, param_names[i]);
         // Should receive ACK after each message.
         validateResponse(sock, ACK);
     }
     // Send FIN to indicate end of parameter names.
-    sendStringToSocket(sock, FIN);
+    sendString(sock, FIN);
 
     // Server will send FIN if command executed succesfully, or an error
     // message otherwise.
     // Server will send through a second response when the command finishes
     // (FIN for success, otherwise a longer string detailing the error).
     uint32_t msg_len;
-    char* resp = readFromSocket(sock, &msg_len);
+    char* resp = readString(sock, &msg_len);
     int err = strcmp(resp, FIN) != 0;
     if (err) {
         fprintf(stderr, "ReadCommand ran with errors: %.*s\n", msg_len, resp);
@@ -225,7 +171,7 @@ output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparam
     assert(!err);
 
     // Send ACK.
-    sendStringToSocket(sock, ACK);
+    sendString(sock, ACK);
 
     output_t** outputs = malloc(nparams * sizeof(output_t));
 
@@ -233,7 +179,7 @@ output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparam
     for (uint32_t i = 0; i < nparams; i++) {
         outputs[i] = malloc(sizeof(output_t));
         outputs[i]->data = readFromSocket(sock, &outputs[i]->len);
-        sendStringToSocket(sock, ACK);
+        sendString(sock, ACK);
     }
     return outputs;
 }

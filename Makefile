@@ -26,7 +26,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(libdir)/$(OUTPUT)
 	$(RM) $(DESTDIR)$(libdir)/pkgconfig/`basename $(PC)`
 
-$(OUTPUT): src/client.c src/replacement.c
+$(OUTPUT): src/client.c src/replacement.c src/encode.c src/protocol.c
 	$(CC) -I $(INCLUDES) $(CFLAGS) -shared $^ -o $@
 example: examples/main.c $(OUTPUT)
 	$(CC) -L. -I $(INCLUDES) $(CFLAGS) $(LDFLAGS) $^ -o $@
