@@ -40,4 +40,10 @@ The repository contains a dockerfile which will build a minimal image containing
 
 ## Troubleshooting
 
-todo
+### Connecting to a server running inside docker
+
+Client connects on 127.0.0.1:$PORT
+
+Server listens on docker 0.0.0.0:$PORT
+
+docker run --rm -it -p $PORT:$PORT -v $inputs:/inputs apsiminitiative/apsimng-server:latest -p $PORT
