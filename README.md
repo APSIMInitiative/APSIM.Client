@@ -10,9 +10,16 @@ This repository contains:
 
 ## Requirements
 
-Compilation requires that GNU make/gcc and pkg-config are installed. I've not attempted to compile or use this on windows.
+Compilation requires that GNU make/gcc and pkg-config are installed. This can be built on windows via WSL.
 
 Building/running the unit tests requires that [`libcheck`](https://github.com/libcheck/check) is installed.
+
+On Ubuntu/WSL:
+
+```bash
+apt update
+apt install -y build-essential check pkg-config git
+```
 
 ## Compilation
 
