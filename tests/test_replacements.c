@@ -102,6 +102,7 @@ START_TEST(test_create_double_array_replacement) {
 
     replacement_free(repl);
 }
+END_TEST
 
 Suite* replacements_test_suite() {
     Suite* suite;
