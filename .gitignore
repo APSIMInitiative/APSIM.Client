@@ -1,3 +1,5 @@
 libapsimclient.so
 example
 unittests
+.vscode/
+
