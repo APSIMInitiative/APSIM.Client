@@ -17,7 +17,11 @@ const int PROPERTY_TYPE_STRING_ARRAY = 9;
 
 replacement_t* createIntReplacement(char* path, int32_t value) {
     replacement_t* result = malloc(sizeof(replacement_t));
-    result->path = path;
+
+    size_t pathLen = strlen(path);
+    result->path = calloc(pathLen, sizeof(char));
+    memcpy(result->path, path, pathLen);
+
     result->paramType = PROPERTY_TYPE_INT;
     result->value = malloc(sizeof(int32_t));
     memcpy(result->value, &value, sizeof(int32_t));
@@ -28,7 +32,11 @@ replacement_t* createIntReplacement(char* path, int32_t value) {
 
 replacement_t* createDoubleReplacement(char* path, double value) {
     replacement_t* result = malloc(sizeof(replacement_t));
-    result->path = path;
+
+    size_t pathLen = strlen(path);
+    result->path = calloc(pathLen, sizeof(char));
+    memcpy(result->path, path, pathLen);
+
     result->paramType = PROPERTY_TYPE_DOUBLE;
     // result->value = (char*)&value;
     result->value_len = sizeof(double);
@@ -48,7 +56,11 @@ Create a replacement representing a change for a numeric array.
 */
 replacement_t* createDoubleArrayReplacement(char* path, double* value, int length) {
     replacement_t* result = malloc(sizeof(replacement_t));
-    result->path = path;
+
+    size_t pathLen = strlen(path);
+    result->path = calloc(pathLen, sizeof(char));
+    memcpy(result->path, path, pathLen);
+
     result->paramType = PROPERTY_TYPE_DOUBLE_ARRAY;
     result->value_len = length * sizeof(double);
     result->value = malloc(result->value_len);
@@ -58,6 +70,7 @@ replacement_t* createDoubleArrayReplacement(char* path, double* value, int lengt
 
 // Free a replacement instance.
 void replacement_free(replacement_t* replacement) {
+    free(replacement->path);
     free(replacement->value);
     free(replacement);
 }
