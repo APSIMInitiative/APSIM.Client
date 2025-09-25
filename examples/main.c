@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     }
 
     // Connect to the socket.
-    fprintf(stdout, "Connecting to server on %s:%u...", ipAddress, port);
+    fprintf(stdout, "Connecting to server on %s:%u...\n", ipAddress, port);
     int sock = connectToRemoteServer(ipAddress, port);
     fprintf(stdout, "connected\n");
 
@@ -66,11 +66,11 @@ int main(int argc, char** argv)
         replacement_free(change);
 
         // Let's read some outputs.
-        char* table = "Report";
+        char* table = "HarvestReport";
         uint32_t nparams = 1;
         char* params[nparams];
-        params[0] = "Yield";
-        // params[1] = "Sorghum.AboveGround.Wt";
+        //params[0] = "Yield";
+        params[0] = "Sorghum.AboveGround.Wt";
         // params[2] = "Sorghum.Leaf.LAI";
         double t = get_wall_time();
 
@@ -79,8 +79,8 @@ int main(int argc, char** argv)
         printf("Read %d outputs in %.2fms\n", nparams, t * 1000);
         for (uint32_t i = 0; i < nparams; i++) {
             uint32_t n = outputs[i]->len / sizeof(double); // all of our outputs are double for now
-            printf("Received output %s with %u elements: [", params[i], n);
-            for (size_t j = 0; j < n; j++) {
+            printf("Received output %s of type %s with %u elements: [", params[i], outputs[i]->type, n);
+            for (size_t j = 0; j < n &&  strcmp(outputs[i]->type, "System.Double") == 0; j++) {
                 double val;
                 memcpy(&val, &outputs[i]->data[j * sizeof(double)], sizeof(double));
                 printf("%.2f%s", val, j < n - 1 ? ", " : "");

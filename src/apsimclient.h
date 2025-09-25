@@ -6,6 +6,7 @@
 
 typedef struct output
 {
+    char* type;
     char* data;
     uint32_t len;
 } output_t;

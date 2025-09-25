@@ -178,6 +178,7 @@ output_t** readOutput(int sock, char* table, char** param_names, uint32_t nparam
     // Now we should receive one result per parameter name.
     for (uint32_t i = 0; i < nparams; i++) {
         outputs[i] = malloc(sizeof(output_t));
+        outputs[i]->type = readString(sock, &msg_len);
         outputs[i]->data = readFromSocket(sock, &outputs[i]->len);
         sendString(sock, ACK);
     }
